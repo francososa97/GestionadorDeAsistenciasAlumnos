@@ -41,14 +41,17 @@ internal class Program
         listadoAlumnos.Add($"Alumnos Ausentes:{alumnosAusentes.Count()}");
         listadoAlumnos.Add("---------------------------------");
         alumnosAusentes.ForEach(x => listadoAlumnos.Add($"{x.Nombre} Ausente"));
+        SetFileResult(listadoAlumnos, "Output");
+    }
 
-
+    private static void SetFileResult(List<string> listadoAlumnos,string nameFile)
+    {
         // Convertir el listado de alumnos en una cadena de texto
         string contenidoArchivo = string.Join(Environment.NewLine, listadoAlumnos);
         try
         {
             // Ruta del archivo de salida (Output.txt en el mismo directorio que el archivo de entrada)
-            string rutaArchivoSalida = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\input\Output.txt");
+            string rutaArchivoSalida = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\input\" + $"{nameFile}.txt");
 
             // Escribir el contenido en el archivo de salida
             File.WriteAllText(rutaArchivoSalida, contenidoArchivo);
@@ -63,49 +66,57 @@ internal class Program
 
     private static List<Alumno> ValidateAlumnosPresnetes(List<Alumno> alumnosPresentes, List<Alumno> alumnosComision)
     {
+
         List<Alumno> AlumnosPresentesEnComision = new List<Alumno>();
-        alumnosComision.ForEach(alumnoEnComision =>
+        string rutaRelativa = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\input\AlumnosPresentes.txt");
+        try
         {
-            if(alumnoEnComision.Nombre == "Alexis Perez Beltran")
+            string contenido = File.ReadAllText(rutaRelativa);
+            string[] contenidoAlumnos = contenido.Split("\r\n");
+            List<Alumno> alumnosPresentesNew = new List<Alumno>();
+            alumnosPresentes.ForEach(alumno =>
             {
-                var test = alumnosPresentes.Where(alumno => alumno.Nombre == "Alexis Perez Beltran").FirstOrDefault();
-                Console.WriteLine(test);
-            }
-            if (alumnoEnComision.Nombre == "Carla Vergara Lizárraga")
-            {
-                var test = alumnosPresentes.Where(alumno => alumno.Nombre == "Carla Vergara Lizárraga").FirstOrDefault();
-                Console.WriteLine(test);
-            }
-            if (alumnoEnComision.Nombre == "Albrech Bruno Arias")
-            {
-                var test = alumnosPresentes.Where(alumno => alumno.Nombre == "Albrech Bruno Arias").FirstOrDefault();
-                Console.WriteLine(test);
-            }
-            
+                bool EstaAlumnoPresente = contenidoAlumnos.Contains(alumno.Nombre);
+                if (!EstaAlumnoPresente)
+                {
+                    var alumnoNew = new Alumno() { Nombre = alumno.Nombre, EstaPresente = true };
+                    alumnosPresentesNew.Add(alumnoNew);
+                }
+            });
+            alumnosPresentes.AddRange(alumnosPresentesNew);
 
-
-            var alumno = alumnosPresentes.Where(alumno => alumno.Nombre == alumnoEnComision.Nombre).FirstOrDefault();
-            if(alumno != null)
+            alumnosComision.ForEach(alumnoEnComision =>
             {
-                AlumnosPresentesEnComision.Add(alumno);
-            }
-            else
-            {
-                var nombrePartes = alumnoEnComision.Nombre.Split(" ");
-                alumno = alumnosPresentes.Where(alumno => alumno.Nombre == $"{nombrePartes[0]} {nombrePartes[1]}").FirstOrDefault();
+                var alumno = alumnosPresentes.Where(alumno => alumno.Nombre == alumnoEnComision.Nombre).FirstOrDefault();
                 if (alumno != null)
                 {
                     AlumnosPresentesEnComision.Add(alumno);
                 }
                 else
                 {
-                    alumnoEnComision.EstaPresente = false;
-                    AlumnosPresentesEnComision.Add(alumnoEnComision);
+                    var nombrePartes = alumnoEnComision.Nombre.Split(" ");
+                    alumno = alumnosPresentes.Where(alumno => alumno.Nombre == $"{nombrePartes[0]} {nombrePartes[1]}").FirstOrDefault();
+                    if (alumno != null)
+                    {
+                        AlumnosPresentesEnComision.Add(alumno);
+                    }
+                    else
+                    {
+                        alumnoEnComision.EstaPresente = false;
+                        AlumnosPresentesEnComision.Add(alumnoEnComision);
+                    }
                 }
+            });
+            return AlumnosPresentesEnComision;
+        }
+        catch (Exception ex)
+            {
+                Console.WriteLine("Error al leer el archivo:");
+                Console.WriteLine(ex.Message);
             }
-        });
         return AlumnosPresentesEnComision;
     }
+
 
     private static List<Alumno> BuildStringToListAlumnos(string contenido)
     {
@@ -117,7 +128,18 @@ internal class Program
             Alumno alumno = new Alumno() {Nombre= nombre.Value, EstaPresente=true };
             nombresAlumnosPresnetes.Add(alumno);
         }
-
+        List<string> alumnos = new List<string>();
+        nombresAlumnosPresnetes.ForEach(alumno => alumnos.Add(alumno.Nombre));
+        string rutaRelativa = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\input\AlumnosPresentes.txt");
+        string contenidoTest = File.ReadAllText(rutaRelativa);
+        string[] contenidoAlumnos = contenido.Split("\r\n");
+        foreach (var item in contenidoAlumnos)
+        {
+            bool contieneNombre = alumnos.Contains(item);
+            if (!contieneNombre)
+                alumnos.Add(item);
+        }
+        SetFileResult(alumnos, "AlumnosPresentes");
         return nombresAlumnosPresnetes;
     }
 
